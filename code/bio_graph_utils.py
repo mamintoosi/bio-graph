@@ -1,4 +1,11 @@
-# Author: Mahmood Amintoosi
+# -*- coding: utf-8 -*-
+#
+#    Copyright (C) 2021-2029 by
+#    Mahmood Amintoosi <m.amintoosi@gmail.com>
+#    All rights reserved.
+#    BSD license.
+"""Algorithms used in bio-graphs."""
+
 # توابع معمول موردنیاز برای عملیات گراف
 
 from scipy.sparse import csr_matrix
@@ -21,33 +28,50 @@ pd.options.display.float_format = "{:.2f}".format
 
 
 # Compute Graph Features
-def graph_features(G, normalize=True):
+def graph_features(G, weight=None, normalize=True):
     """
     Computer graph nodes attributes
 
     Parameters
     ----------
     G : nx.Graph
+
+    weight : string or None, optional (default=None)
+    The edge attribute that holds the numerical value used as a weight.
+    Degree of nodes computed according to the graph nodes' weights
+    If None, then each edge has weight 1.
+
     normalize : boolean
         If True, All columns of the returned DataFrame will be normalized.
 
     Returns
     -------
     dataframe
+
+    Notes
+    -----
+    Currently weight parameter is considered only for node degrees. 
+    Some other criteria have not accepted weight parameter, 
+    some of them such as betweenness, are sensible to weighted edges,
+    but the minimum edge value is better for these criteria,
+    but the default value is that the strong weight indicate stronger connections.
+
     """    
     df = pd.DataFrame(index=G.nodes())
-    # deg = G.degree()
-    # deg_list = np.zeros((len(deg)))
-    # for i,x in enumerate(G.degree()):
-    #     deg_list[i] = x[1]
-    with tqdm(total=5) as progress_bar:
-        # df['degree'] = deg_list #pd.Series(deg_list)
+    with tqdm(total=6) as progress_bar:
+        d = G.degree(weight=weight)
+        df['degree'] = ([v[1] for v in d]) 
+        progress_bar.update(1)
         df['degree_cent'] = pd.Series(nx.degree_centrality(G))
+        progress_bar.update(1)
         df['betweenness'] = pd.Series(nx.betweenness_centrality(G))
+        progress_bar.update(1)
         df['closeness'] = pd.Series(nx.closeness_centrality(G))
+        progress_bar.update(1)
 
         # ظاهرا هر چه کمتر باشه بهتره
-        df['eccentricity'] = 1-pd.Series(nx.eccentricity(G))
+        df['eccentricity'] = -pd.Series(nx.eccentricity(G))
+        progress_bar.update(1)
         df['eigenvector'] = pd.Series(nx.eigenvector_centrality(G))
         progress_bar.update(1)
 
@@ -117,15 +141,29 @@ def largest_con_com(df, G):
     maxIdx = idx[-1]
     # print(maxIdx,n_con_comp[maxIdx])
     con_comp_indices = list(conComp[maxIdx])
+    # print(con_comp_indices)
     subG = G.subgraph(nodes=con_comp_indices).copy()
-    node_names = [df.keys().format()[x] for x in con_comp_indices]
-    mapping = dict(zip(con_comp_indices, node_names))
-    subG = nx.relabel_nodes(subG, mapping)
+    # در اینجا فهرست نودهای متصب نام گره ها هستند
+    # node_names = [df.index.format()[x] for x in con_comp_indices]
+    # mapping = dict(zip(con_comp_indices, node_names))
+    # subG = nx.relabel_nodes(subG, mapping)
     return subG
+
+def make_graph_from_df(df,node_objects,edge_objects):
+    dfct = pd.crosstab(df[node_objects], df[edge_objects])
+    bow = dfct.values
+    M = bow.dot(bow.T)
+    np.fill_diagonal(M,0)
+    G = nx.Graph(M)
+    node_names = dfct.index.format()
+    mapping = dict(zip(np.arange(len(node_names)), node_names))
+    G = nx.relabel_nodes(G, mapping)
+    return G,dfct,bow
+
 
 
 def rank_using_graph_features(subG, min_count, node_objects, edge_objects, data_dir, output_dir, working_file_name):
-    print('Computing features...\n')
+    # print('Computing features...\n')
     gf_df = graph_features(subG)  # graph features data frame
     # print(gf_df)
 
