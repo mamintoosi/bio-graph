@@ -97,6 +97,7 @@ print('Number of sub graph nodes:', len(subG.nodes()))
 # # nx.draw_shell(subG,with_labels=True)
 subG_ix = list(subG.nodes())
 dfct_subG = dfct.loc[subG_ix]
+print('Sub graph info before dropping: ',dfct_subG.shape)
 # drop columns with zero sum
 dfct_subG = dfct_subG.loc[:, (dfct_subG != 0).any(axis=0)]
 # dfct = pd.crosstab(df[node_objects], df[edge_objects])
@@ -111,23 +112,17 @@ gf_df, gf_df_sorted = rank_using_graph_features(subG,min_count,node_objects,edge
 
 print('Computing frequent itemsets...\n')
 # # sorted_nodes_idx, sorted_nodes_idx_w, G, degreeG = fim_bio(minFreq,T,bow,featureNames)
-sorted_nodes_idx, sorted_nodes_idx_w, G_fim, degreeG_fim = fim_bio(minFreq,dfct_subG,node_objects,edge_objects,output_dir,working_file_name)
+# The new weights will be stored in subG
+sorted_nodes_idx, sorted_nodes_idx_w,degreeG_fim, degreeG_fim_w = fim_bio(subG, dfct_subG, minFreq,node_objects,edge_objects,output_dir,working_file_name)
 node_names = [dfct_subG.index.format()[x] for x in sorted_nodes_idx]
 node_names_w = [dfct_subG.index.format()[x] for x in sorted_nodes_idx_w]
-# list_subG = list(subG)
-# # print([list_subG[x] for x in sorted_nodes_idx])
-# node_names = [df_subG.keys().format()[x] for x in sorted_nodes_idx]
-# node_names_w = [df_subG.keys().format()[x] for x in sorted_nodes_idx_w]
-# # mapping = dict(zip(sorted_nodes_idx, node_names))
-# # new_subG = nx.relabel_nodes(subG,mapping)
-# # new_df = pd.DataFrame(index = new_subG.nodes())
 
 # #استفاده از گراف مجموعه اقلام مکرر
 gf_fim_df = gf_df.loc[:, gf_df.columns != 'features_sum']
 min_max_scaler = preprocessing.MinMaxScaler()
 # numpy_matrix = df.values
-X = min_max_scaler.fit_transform(degreeG_fim.reshape(-1,1))
-gf_fim_df['degree_fim'] = X#degreeG#pd.Series(degreeG)
+X = min_max_scaler.fit_transform(np.array(degreeG_fim_w).reshape(-1,1))
+gf_fim_df['degree_fim'] = X
 features_sum = gf_fim_df.sum(axis=1)
 gf_fim_df['features_sum'] = features_sum
 
