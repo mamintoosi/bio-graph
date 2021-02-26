@@ -31,7 +31,7 @@ def powerset(iterable):
 
 def obj_fun(true_list,pred_list):
     index = np.arange(1,20,1)
-    [apk,mapk,mark] = compute_metrics(true_list, pred_list)
+    [apk,_,] = compute_metrics(true_list, pred_listو apk_ranges=index)
     return np.mean(apk)
 
 file_name = 'results/{}_{}_{}_{}_{}_{}.xlsx'.format(working_file_name[:2],GT_file_name[:2],node_objects,\

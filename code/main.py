@@ -59,10 +59,10 @@ df = pd.read_excel(working_file, engine="openpyxl")
 # در فرم نود=گیاه، گیاهانی که حداقل مین‌کانت بار در دیتابیس اومدن، نگه داشته میشن
 # به عبارت دیگه حداقل مین‌کانت متابولیت داشتن
 # نگهداری ستونهای با بیش از ۵ عنصر
-min_count = 5
+min_count = 4
 # حداقل تعداد تکرار برای مجموعه اقلام مکرر
 # حد زیر برای نگهداری متابولیت‌هایی است که حداقل در پنج گیاه آمده‌اند.
-minFreq = 5
+minFreq = 2
 
 # نگهداری ستونهای با بیش از مین‌کانت عنصر
 # cols_to_preserve = np.where((df.count()>=min_count).values == True)[0]
@@ -77,7 +77,7 @@ minFreq = 5
 # این قسمت باید با ساب گراف ان ایکس بازنویسی باشه
 # subgraph
 # ایجاد دیتافریمها هم میتونه بازنویسی بشه که گراف مستقیم از دیتافریم خونده بشه
-print('Table info: ',df.shape)
+print('Table info: ', df.shape)
 print('Number of nodes in main file: ', len(df[node_objects].unique()))
 
 s = df[node_objects].value_counts()
@@ -92,19 +92,20 @@ G,dfct,bow = make_graph_from_df(df,node_objects,edge_objects)
 
 # پیدا کردن بزرگترین زیرگراف همبند
 print('Computing the largest connected graph...\n')
-subG = largest_con_com(dfct,G)
+subG = largest_con_com(dfct, G)
 print('Number of sub graph nodes:', len(subG.nodes()))
 # # nx.draw_shell(subG,with_labels=True)
 subG_ix = list(subG.nodes())
 dfct_subG = dfct.loc[subG_ix]
-print('Sub graph info before dropping: ',dfct_subG.shape)
+print('Sub graph info before dropping: ', dfct_subG.shape)
 # drop columns with zero sum
 dfct_subG = dfct_subG.loc[:, (dfct_subG != 0).any(axis=0)]
 # dfct = pd.crosstab(df[node_objects], df[edge_objects])
-print('Sub graph info: ',dfct_subG.shape)
+print('Sub graph info: ', dfct_subG.shape)
 
 print('Computing the graph features...\n')
-gf_df, gf_df_sorted = rank_using_graph_features(subG,min_count,node_objects,edge_objects,data_dir,output_dir,working_file_name)
+gf_df, gf_df_sorted = rank_using_graph_features(subG, min_count, node_objects, \
+    edge_objects, data_dir, output_dir, working_file_name)
 # # df[list(subG)]
 # # مجموعه اقلام مکرر
 # df_subG = df[list(subG)]
@@ -113,7 +114,8 @@ gf_df, gf_df_sorted = rank_using_graph_features(subG,min_count,node_objects,edge
 print('Computing frequent itemsets...\n')
 # # sorted_nodes_idx, sorted_nodes_idx_w, G, degreeG = fim_bio(minFreq,T,bow,featureNames)
 # The new weights will be stored in subG
-sorted_nodes_idx, sorted_nodes_idx_w,degreeG_fim, degreeG_fim_w = fim_bio(subG, dfct_subG, minFreq,node_objects,edge_objects,output_dir,working_file_name)
+sorted_nodes_idx, sorted_nodes_idx_w, degreeG_fim, degreeG_fim_w = fim_bio(subG, dfct_subG, \
+    minFreq, node_objects, edge_objects, output_dir, working_file_name)
 node_names = [dfct_subG.index.format()[x] for x in sorted_nodes_idx]
 node_names_w = [dfct_subG.index.format()[x] for x in sorted_nodes_idx_w]
 
@@ -121,13 +123,23 @@ node_names_w = [dfct_subG.index.format()[x] for x in sorted_nodes_idx_w]
 gf_fim_df = gf_df.loc[:, gf_df.columns != 'features_sum']
 min_max_scaler = preprocessing.MinMaxScaler()
 # numpy_matrix = df.values
-X = min_max_scaler.fit_transform(np.array(degreeG_fim_w).reshape(-1,1))
+X = min_max_scaler.fit_transform(np.array(degreeG_fim).reshape(-1, 1))
 gf_fim_df['degree_fim'] = X
 features_sum = gf_fim_df.sum(axis=1)
 gf_fim_df['features_sum'] = features_sum
-
 # gf_fim_df
 gf_fim_df_sorted = gf_fim_df.sort_values(by='features_sum', ascending=False)
+# gf_fim_df_sorted
+
+gf_fim_w_df = gf_df.loc[:, gf_df.columns != 'features_sum']
+min_max_scaler = preprocessing.MinMaxScaler()
+# numpy_matrix = df.values
+X = min_max_scaler.fit_transform(np.array(degreeG_fim_w).reshape(-1, 1))
+gf_fim_w_df['degree_fim'] = X
+features_sum = gf_fim_w_df.sum(axis=1)
+gf_fim_w_df['features_sum'] = features_sum
+# gf_fim_df
+gf_fim_w_df_sorted = gf_fim_w_df.sort_values(by='features_sum', ascending=False)
 # gf_fim_df_sorted
 
 # s1 = gf_fim_df_sorted['degree_cent']
@@ -142,39 +154,46 @@ true_df = pd.read_excel(GT_file, engine="openpyxl")
 true_list = list(true_df[node_objects].unique())
 # true_list = list(true_df.keys().values)
 index = np.arange(1,50,2)
-[apk_fim,mapk_fim,mark_fim] = compute_metrics(true_list, node_names)
-[apk_fim_w,mapk_fim_w,mark_fim_w] = compute_metrics(true_list, node_names_w)
-[apk_gf,mapk_gf,mark_gf] = compute_metrics(true_list, list(gf_df_sorted.index.values))
-[apk_gf_fim,mapk_gf_fim,mark_gf_fim] = compute_metrics(true_list, list(gf_fim_df_sorted.index.values))
-[apk_rand,mapk_rand,mark_rand] = compute_metrics(true_list, random_order)
+[apk_fim,ark_fim] = compute_metrics(true_list, node_names)
+[apk_fim_w,ark_fim_w] = compute_metrics(true_list, node_names_w)
+[apk_gf,ark_gf] = compute_metrics(true_list, list(gf_df_sorted.index.values))
+[apk_gf_fim,ark_gf_fim] = compute_metrics(true_list, list(gf_fim_df_sorted.index.values))
+[apk_gf_fim_w,ark_gf_fim_w] = compute_metrics(true_list, list(gf_fim_w_df_sorted.index.values))
+[apk_rand,ark_rand] = compute_metrics(true_list, random_order)
 # # apk_fim
 # # [apk_fim_w,mapk_fim_w,mark_fim_w] = compute_metrics(AC_plants_order_by_metabolit_numbers, fim_w_df[1].values)
 # # [apk_gf,mapk_gf,mark_gf] = compute_metrics(AC_plants_order_by_metabolit_numbers, plants_order_by_features)
 # # [apk_rt,mapk_rt,mark_rt] = compute_metrics(AC_plants_order_by_metabolit_numbers, RT_plants_order_by_metabolit_numbers)
 
-names = ['Features', 'Frequently Item Set','Frequently Item Set w','Hybrid','Random']#, 'RT']
+names = ['Features', 'Frequently Item Set', 'Frequently Item Set w', 'Hybrid', 'Hybrid w']#, 'Random']#, 'RT']
 
-scores = [mapk_gf, mapk_fim, mapk_fim_w, mapk_gf_fim,mapk_rand]#, mapk_rt]
+# scores = [mapk_gf, mapk_fim, mapk_fim_w, mapk_gf_fim, mapk_rand]#, mapk_rt]
+# fig = plt.figure(figsize=(10, 4))
+# recmetrics.mapk_plot(scores, model_names=names, k_range=index)
+
+
+scores = [apk_gf, apk_fim, apk_fim_w, apk_gf_fim, apk_gf_fim_w]#, apk_rand]
 fig = plt.figure(figsize=(10, 4))
 recmetrics.mapk_plot(scores, model_names=names, k_range=index)
-
-scores = [mark_gf, mark_fim, mark_fim_w,mark_gf_fim, mark_rand]
-fig = plt.figure(figsize=(10, 4))
-recmetrics.mark_plot(scores, model_names=names, k_range=index)
-
-scores = [apk_gf, apk_fim, apk_fim_w,apk_gf_fim, apk_rand]
-fig = plt.figure(figsize=(10, 4))
-recmetrics.mapk_plot(scores, model_names=names, k_range=index)
-png_file_name = 'results/{}_{}_{}_{}_{}_{}.png'.format(working_file_name[:2],GT_file_name[:2],node_objects,\
-    edge_objects,str(min_count),str(minFreq))
+png_file_name = 'results/{}_{}_{}_{}_{}_{}_apk.png'.format(working_file_name[:2], GT_file_name[:2], \
+    node_objects, edge_objects, str(min_count), str(minFreq))
 fig.savefig(png_file_name)
 # for col in df.columns:
 #     print(set(df[col].dropna()) & set([1. , 2. ,6.]))
 
-file_name = 'results/{}_{}_{}_{}_{}_{}.xlsx'.format(working_file_name[:2],GT_file_name[:2],node_objects,\
-    edge_objects,str(min_count),str(minFreq))
+scores = [ark_gf, ark_fim, ark_fim_w, ark_gf_fim, ark_gf_fim_w]#, ark_rand]
+fig = plt.figure(figsize=(10, 4))
+recmetrics.mark_plot(scores, model_names=names, k_range=index)
+png_file_name = 'results/{}_{}_{}_{}_{}_{}_ark.png'.format(working_file_name[:2], GT_file_name[:2], \
+    node_objects, edge_objects, str(min_count), str(minFreq))
+fig.savefig(png_file_name)
+
+
+file_name = 'results/{}_{}_{}_{}_{}_{}.xlsx'.format(working_file_name[:2], GT_file_name[:2], \
+    node_objects, edge_objects, str(min_count), str(minFreq))
 writer = ExcelWriter(file_name)
 gf_df_sorted.to_excel(writer, sheet_name='gf_df_sorted')  # , index=False)
 gf_fim_df_sorted.to_excel(writer, sheet_name='gf_fim_df_sorted')  # , index=False)
+gf_fim_w_df_sorted.to_excel(writer, sheet_name='gf_fim_w_df_sorted')  # , index=False)
 gf_df.to_excel(writer, sheet_name='gf_df')  # , index=False)
 writer.save()

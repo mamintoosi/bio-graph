@@ -191,12 +191,26 @@ def compute_metrics(true_list, recom_list, apk_ranges=np.arange(1, 50, 2), mapk_
     for K in apk_ranges:
         apk.extend([ml_metrics.apk(true_list, recom_list, k=K)])
     mapk = []
-    for K in mapk_ranges:
-        mapk.extend([ml_metrics.mapk(true_list, recom_list, k=K)])
-    mark = []
-    for K in mapk_ranges:
-        mark.extend([recmetrics.mark(true_list, recom_list, k=K)])
-    return [apk, mapk, mark]
+    # با مراجعه به سورس تابع زیر مشخص شد که این برای کار ما درست نیست
+    # دلیل در انتهای فایل
+    # for K in mapk_ranges:
+    #     mapk.extend([ml_metrics.mapk([true_list], [recom_list], k=K)])
+        # mapk.extend([recmetrics.novelty(true_list, recom_list, k=K)]) # فرقی نکرد!!
+
+    #     به همان دلیل بالا بخش زیر هم مناسب کار ما نیست
+    # mark = []
+    # for K in mapk_ranges:
+    #     mark.extend([recmetrics.mark(true_list, recom_list, k=K)])
+
+    # و چون 
+    # _ark
+    # رو نشد فراخوانی کنم
+    # لذا هر کدام را داخل کروشه می‌گذاریم
+    ark = []
+    for K in apk_ranges:
+        ark.extend([recmetrics.mark([true_list], [recom_list], k=K)])
+
+    return [apk, ark]
 
 
 def AC_df_to_2_col():
@@ -368,3 +382,13 @@ def df_2_col_to_spread(file_prefix='LR',col_name='Met'):
 # from Orange.data.pandas_compat import table_from_frame
 # # data = Orange.data.Table(df.values)
 # data = table_from_frame(df)
+
+# دلیل نادرستی استفاده از 
+# mapk
+# actual = [1,2,3] #[[1,2,3],[3,4,5]]
+# predicted = [3,4,5]#[[1,2,4],[5,6,7],[8,9]]
+# for a,p in zip(actual, predicted):
+#     print(a,p)
+# این تابع برای وقتی است که یک لیست از جوابهای درست و توصیه شده دیتافریم
+# مثل خروجی لاتک 
+# tag-recommendation
