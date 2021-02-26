@@ -15,7 +15,7 @@ import pandas as pd
 import numpy as np
 # from orangecontrib.associate.fpgrowth import *
 # from itertools import tee
-from tqdm import tqdm
+from tqdm.notebook import tqdm
 import networkx as nx
 import math
 from sklearn import preprocessing

@@ -12,7 +12,7 @@ import pandas as pd
 import numpy as np
 from orangecontrib.associate.fpgrowth import *
 # from itertools import tee
-from tqdm import tqdm
+from tqdm.notebook import tqdm
 import networkx as nx
 # from bio_graph_utils import bow_nodes
 # import math 
